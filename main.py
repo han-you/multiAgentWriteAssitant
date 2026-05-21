@@ -9,17 +9,18 @@ builder.add_node("writer",writer_node)
 builder.add_node("editor",editor_node)
 
 def editor_router(state:ReportState):
-    if state["reversion_count"]>=5 or state["editor_feedsback"]=="通过":
+    if state["reversion_count"]>=5:
         return "end"
     else:
-        return "writer"
+        return state["editor_action"]
 
 builder.add_edge(START,"researcher")
 builder.add_edge("researcher","writer")
 builder.add_edge("writer","editor")
 builder.add_conditional_edges("editor",editor_router,{
     "writer":"writer",
-    "end":END
+    "end":END,
+    "researcher":"researcher"
 })
 
 graph=builder.compile()
@@ -28,8 +29,9 @@ result=graph.invoke({
     "target_word_count": 600,
     "draft": "",
     "search_results":"",
-    "editor_feedsback":"",
-    "editor_comment":"",
+    "editor_action":"",
+    "search_comment":"",
+    "write_comment":"",
     "reversion_count":0
 })
 with open("./result_add_searcher.md","w",encoding="utf-8") as fp:
