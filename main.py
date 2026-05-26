@@ -1,6 +1,25 @@
 from langgraph.graph import StateGraph,START,END
 from state import ReportState
-from nodes import writer_node,research_node,editor_node
+from agents import *
+from langgraph.checkpoint.postgres import PostgresSaver
+from dotenv import load_dotenv
+import os
+import json
+load_dotenv()
+username=os.getenv("DATABASE_USERNAME")
+server_ip=os.getenv("SERVER_IP")
+port=os.getenv("DATABASE_PORT")
+passwd=os.getenv("DATABASE_PASSWORD")
+
+DB_URI = "postgresql://{username}:{passwd}@{IP}:{port}/agents".format(
+    username=username,
+    passwd=passwd,
+    IP=server_ip,
+    port=port
+)
+
+
+
 
 builder=StateGraph(ReportState)
 
@@ -22,17 +41,33 @@ builder.add_conditional_edges("editor",editor_router,{
     "end":END,
     "researcher":"researcher"
 })
+with PostgresSaver.from_conn_string(DB_URI) as checkpointer:
+    checkpointer.setup()
+    graph=builder.compile(checkpointer=checkpointer)
+    config={"configurable":{"thread_id":"report_008"}}
+    existing=graph.get_state(config)
+    if not existing.values:
+        print("首次运行")
+        result=graph.invoke({
+            "topic": "中国新能源汽车出海市场现状",
+            "target_word_count": 600,
+            "draft": "",
+            "search_results":"",
+            "editor_action":"",
+            "search_comment":"",
+            "write_comment":"",
+            "reversion_count":0,
+            "tokens":[]
+        },
+        config=config)
+    else:
+        print(f"恢复运行，上次状态: {existing}")
+        result = graph.invoke(None, config=config)
+    thread_id=config["configurable"]["thread_id"]
 
-graph=builder.compile()
-result=graph.invoke({
-    "topic": "中国新能源汽车出海市场现状",
-    "target_word_count": 600,
-    "draft": "",
-    "search_results":"",
-    "editor_action":"",
-    "search_comment":"",
-    "write_comment":"",
-    "reversion_count":0
-})
-with open("./result_add_searcher.md","w",encoding="utf-8") as fp:
-    fp.write(result["draft"])
+    with open(f"./result_{thread_id}.md","w",encoding="utf-8") as fp:
+        fp.write(result["draft"])
+    with open(f"./token_usag_{thread_id}.md","w",encoding="utf-8") as fp:
+        for item in result["tokens"]:
+            fp.write(json.dumps(item, ensure_ascii=False) + "\n")
+        

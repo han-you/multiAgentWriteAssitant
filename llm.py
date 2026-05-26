@@ -14,5 +14,9 @@ def callLLM(prompt:str,temperature=1)->str:
             {"role": "user","content": prompt}
         ]
     )
-    return response.choices[0].message.content
+    # print("llm返回结果为:"+str(response))
+    return {"content":response.choices[0].message.content,
+            "completion_tokens":response.usage.completion_tokens,
+            "prompt_tokens":response.usage.prompt_tokens
+            }
 

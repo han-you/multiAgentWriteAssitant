@@ -186,7 +186,11 @@ WRITER_PROMPT="""你是一名资深行业研究员、战略咨询顾问和商业
 
 
 def writer_node(state: ReportState)->dict:
+    print("start write")
     print(state["reversion_count"])
+    # print("=== WRITER 节点开始执行，5秒后按 Ctrl+C 中断 ===")
+    # import time
+    # time.sleep(5) 
     prompt=""
     if state["reversion_count"]>0:
         prompt=WRITER_REWRITE_PROMPT.format(
@@ -203,5 +207,9 @@ def writer_node(state: ReportState)->dict:
                     topic=state["topic"],
                     target_word_count=state["target_word_count"],
                 )
-    draft=callLLM(prompt)
-    return {"draft":draft}
+    response=callLLM(prompt)
+    draft=response["content"]
+    tokens_list=state["tokens"]
+    tokens_list.append({"role":"writer","completion_tokens":response["completion_tokens"],"prompt_tokens":response["prompt_tokens"]})
+    print("end write")
+    return {"tokens":tokens_list,"draft":draft}

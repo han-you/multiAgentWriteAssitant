@@ -8,3 +8,4 @@ class ReportState(TypedDict):
     search_comment:str          #editor反馈给researcher节点反馈信息
     write_comment:str          #editor反馈给writer节点的信息  
     reversion_count:int         #editor循环执行次数
+    tokens:list                 #查看消耗的tokens

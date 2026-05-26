@@ -86,6 +86,7 @@ EDITOR_PROMPT = """
 
 
 def editor_node(state:ReportState)->dict:
+    print("start editor")
     count=state.get("reversion_count",0)
     draft=state["draft"]
     topic=state["topic"]
@@ -99,10 +100,11 @@ def editor_node(state:ReportState)->dict:
         max_words=max_words,
         draft=draft
     )
-    editor_message=callLLM(prompt,0.2)
+    response=callLLM(prompt,0.2)
     # print("raw editor message"+str(editor_message))
     # print("===== 实际收到的内容 =====")
     # print(repr(editor_message))
+    editor_message=response["content"]
     print(editor_message)
     #json对editor结果解析
     data_list=json.loads(clean_json_from_markdown(editor_message))
@@ -115,4 +117,7 @@ def editor_node(state:ReportState)->dict:
     with open("./editor_comment-"+str(state["reversion_count"]),"w",encoding="utf-8") as fp:
         fp.write("search_comment:"+search_comment+'\n')
         fp.write("write_comment:"+write_comment)
-    return {"editor_action":action,"search_comment":search_comment,"write_comment":write_comment,"reversion_count":count+1}
+    tokens_list=state["tokens"]
+    tokens_list.append({"role":"editor","completion_tokens":response["completion_tokens"],"prompt_tokens":response["prompt_tokens"]})
+    print("end editor")
+    return {"tokens":tokens_list,"editor_action":action,"search_comment":search_comment,"write_comment":write_comment,"reversion_count":count+1}
